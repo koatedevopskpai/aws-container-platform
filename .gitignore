@@ -1,0 +1,82 @@
+# =============================================================================
+# Gitignore for Terraform + GitOps EKS Repository
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Terraform
+# ---------------------------------------------------------------------------
+**/.terraform/*
+*.tfstate
+*.tfstate.*.backup
+*.tfstate.backup
+*.tfplan
+*.tfplan.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+terraform.rc
+terraform.tfvars
+!terraform.tfvars.example
+.terraform.lock.hcl
+
+# ---------------------------------------------------------------------------
+# Infracost
+# ---------------------------------------------------------------------------
+.infracost-usage.yml
+infracost-report.json
+
+# ---------------------------------------------------------------------------
+# Secrets and credentials
+# ---------------------------------------------------------------------------
+*.pem
+*.key
+*.cert
+kubeconfig*
+kubecfg*
+*.kubeconfig
+**/.aws/credentials
+**/.aws/config
+.aws.json
+*.sops.yaml
+!*.sops.yaml.example
+
+# ARCHITECTURE DECISION: Never commit terraform.tfvars
+# This file may contain environment-specific values that could
+# accidentally reference production resource identifiers.
+# Always use terraform.tfvars.example as the template.
+
+# ---------------------------------------------------------------------------
+# IDE and OS files
+# ---------------------------------------------------------------------------
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.vs/
+
+# ---------------------------------------------------------------------------
+# Testing artifacts
+# ---------------------------------------------------------------------------
+tests/*.test
+tests/*.out
+tests/vendor/
+
+# ---------------------------------------------------------------------------
+# Pre-commit
+# ---------------------------------------------------------------------------
+.pre-commit-config.yaml.bak
+
+# ---------------------------------------------------------------------------
+# CI artifacts
+# ---------------------------------------------------------------------------
+checkov-report.xml
+
+# ---------------------------------------------------------------------------
+# Go dependencies
+# ---------------------------------------------------------------------------
+tests/vendor/

@@ -1,0 +1,54 @@
+# =============================================================================
+# SecondWave Container Platform - Terraform Variables Example
+# =============================================================================
+# Usage: cp terraform.tfvars.example terraform.tfvars
+#        terraform plan -var-file=terraform.tfvars
+# =============================================================================
+
+cluster_name   = "secondwave-prod-euw2"
+region         = "eu-west-2"
+
+# VPC configuration (provided by networking team's Terraform state)
+vpc_id           = "vpc-0a1b2c3d4e5f67890"
+private_subnet_ids = [
+  "subnet-0a1b2c3d4e5f67890",
+  "subnet-0a1b2c3d4e5f67891",
+  "subnet-0a1b2c3d4e5f67892",
+]
+
+# Node groups
+# node_groups = {
+#   prod = {
+#     instance_types = ["m5.xlarge", "m5a.xlarge"]
+#     desired_size   = 3
+#     min_size       = 3
+#     max_size       = 15
+#     disk_size      = 200
+#     capacity_type  = "ON_DEMAND"
+#     k8s_labels     = { "node-lifecycle" : "on-demand", "environment" : "prod" }
+#   }
+# }
+
+# Karpenter (prod only)
+# karpenter_config = {
+#   enabled               = true
+#   subnet_selector_terms = [{ "karpenter.sh/discovery" : "secondwave" }]
+#   security_group_selector_terms = [{ "karpenter.sh/discovery" : "secondwave" }]
+#   instance_family       = ["m5", "m5a", "m6i", "c5", "c5a", "r5", "r5a"]
+#   instance_size         = ["large", "xlarge", "2xlarge"]
+#   cpu_limit             = "1000"
+#   memory_limit          = "1000Gi"
+# }
+
+gitops_tool = "argocd"
+
+domain_name = "secondwave.financial"
+cert_email  = "platform-team@secondwave.financial"
+
+# Tags
+tags = {
+  Environment = "production"
+  ManagedBy   = "terraform"
+  Platform    = "container-platform"
+  Project     = "secondwave"
+}
