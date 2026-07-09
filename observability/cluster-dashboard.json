@@ -1,0 +1,313 @@
+{
+  "dashboard": {
+    "version": "2024-01-01",
+    "widgets": [
+      {
+        "type": "text",
+        "x": 0,
+        "y": 0,
+        "width": 24,
+        "height": 1,
+        "properties": {
+          "markdown": "# SecondWave Container Platform — EKS Cluster Dashboard\n## Environment: ${CLUSTER_NAME} | Region: eu-west-2"
+        }
+      },
+      {
+        "type": "metric",
+        "x": 0,
+        "y": 1,
+        "width": 8,
+        "height": 6,
+        "properties": {
+          "title": "Cluster API Server Request Count",
+          "region": "eu-west-2",
+          "metrics": [
+            [ "AWS/EKS", "cluster_failed_request_count", { "stat": "Sum", "period": 300 } ],
+            [ "...", { "stat": "Sum", "period": 300, "color": "#ff7f0e", "label": "Total Requests" } ]
+          ],
+          "period": 300,
+          "stat": "Sum",
+          "yAxis": {
+            "left": { "min": 0, "showUnits": false }
+          }
+        }
+      },
+      {
+        "type": "metric",
+        "x": 8,
+        "y": 1,
+        "width": 8,
+        "height": 6,
+        "properties": {
+          "title": "Node Count by Status",
+          "region": "eu-west-2",
+          "metrics": [
+            [ "ContainerInsights", "node_count", { "stat": "Average", "period": 300, "color": "#2ca02c" } ],
+            [ "...", { "stat": "Average", "period": 300, "color": "#d62728", "label": "Unhealthy Nodes" } ]
+          ],
+          "period": 300,
+          "stat": "Average",
+          "yAxis": {
+            "left": { "min": 0, "showUnits": false }
+          }
+        }
+      },
+      {
+        "type": "metric",
+        "x": 16,
+        "y": 1,
+        "width": 8,
+        "height": 6,
+        "properties": {
+          "title": "Pod Status Overview",
+          "region": "eu-west-2",
+          "metrics": [
+            [ "ContainerInsights", "pod_count", { "label": "Total Pods", "stat": "Average", "period": 300, "color": "#1f77b4" } ],
+            [ "...", "pod_running_count", { "label": "Running", "stat": "Average", "period": 300, "color": "#2ca02c" } ],
+            [ "...", "pod_pending_count", { "label": "Pending", "stat": "Average", "period": 300, "color": "#ff7f0e" } ],
+            [ "...", "pod_failed_count", { "label": "Failed", "stat": "Average", "period": 300, "color": "#d62728" } ]
+          ],
+          "period": 300,
+          "stat": "Average",
+          "yAxis": {
+            "left": { "min": 0, "showUnits": false }
+          }
+        }
+      },
+      {
+        "type": "metric",
+        "x": 0,
+        "y": 7,
+        "width": 8,
+        "height": 6,
+        "properties": {
+          "title": "Node CPU Utilization (%)",
+          "region": "eu-west-2",
+          "metrics": [
+            [ "ContainerInsights", "node_cpu_utilization", { "stat": "Average", "period": 300 } ],
+            [ "...", { "stat": "p90", "period": 300, "color": "#ff7f0e", "label": "P90" } ]
+          ],
+          "period": 300,
+          "stat": "Average",
+          "yAxis": {
+            "left": { "min": 0, "max": 100, "showUnits": false }
+          }
+        }
+      },
+      {
+        "type": "metric",
+        "x": 8,
+        "y": 7,
+        "width": 8,
+        "height": 6,
+        "properties": {
+          "title": "Node Memory Utilization (%)",
+          "region": "eu-west-2",
+          "metrics": [
+            [ "ContainerInsights", "node_memory_utilization", { "stat": "Average", "period": 300 } ],
+            [ "...", { "stat": "p90", "period": 300, "color": "#ff7f0e", "label": "P90" } ]
+          ],
+          "period": 300,
+          "stat": "Average",
+          "yAxis": {
+            "left": { "min": 0, "max": 100, "showUnits": false }
+          }
+        }
+      },
+      {
+        "type": "metric",
+        "x": 16,
+        "y": 7,
+        "width": 8,
+        "height": 6,
+        "properties": {
+          "title": "Node Network Traffic (Bytes)",
+          "region": "eu-west-2",
+          "metrics": [
+            [ "ContainerInsights", "node_network_total_bytes", { "stat": "Sum", "period": 300, "color": "#1f77b4" } ]
+          ],
+          "period": 300,
+          "stat": "Sum",
+          "yAxis": {
+            "left": { "min": 0, "showUnits": false }
+          }
+        }
+      },
+      {
+        "type": "metric",
+        "x": 0,
+        "y": 13,
+        "width": 8,
+        "height": 6,
+        "properties": {
+          "title": "Karpenter — Pending Pods",
+          "region": "eu-west-2",
+          "metrics": [
+            [ "Karpenter", "pending_pods_count", { "stat": "Maximum", "period": 60, "color": "#ff7f0e" } ]
+          ],
+          "period": 60,
+          "stat": "Maximum",
+          "yAxis": {
+            "left": { "min": 0, "showUnits": false }
+          }
+        }
+      },
+      {
+        "type": "metric",
+        "x": 8,
+        "y": 13,
+        "width": 8,
+        "height": 6,
+        "properties": {
+          "title": "Karpenter — Nodes Provisioned",
+          "region": "eu-west-2",
+          "metrics": [
+            [ "Karpenter", "nodes_created", { "stat": "Sum", "period": 300, "color": "#2ca02c" } ],
+            [ "...", "nodes_terminated", { "stat": "Sum", "period": 300, "color": "#d62728" } ]
+          ],
+          "period": 300,
+          "stat": "Sum",
+          "yAxis": {
+            "left": { "min": 0, "showUnits": false }
+          }
+        }
+      },
+      {
+        "type": "metric",
+        "x": 16,
+        "y": 13,
+        "width": 8,
+        "height": 6,
+        "properties": {
+          "title": "Karpenter — Consolidation Events",
+          "region": "eu-west-2",
+          "metrics": [
+            [ "Karpenter", "consolidation_events", { "stat": "Sum", "period": 300, "color": "#9467bd" } ]
+          ],
+          "period": 300,
+          "stat": "Sum",
+          "yAxis": {
+            "left": { "min": 0, "showUnits": false }
+          }
+        }
+      },
+      {
+        "type": "metric",
+        "x": 0,
+        "y": 19,
+        "width": 8,
+        "height": 6,
+        "properties": {
+          "title": "EKS Control Plane — 5XX Errors",
+          "region": "eu-west-2",
+          "metrics": [
+            [ "AWS/EKS", "cluster_failed_request_count", { "stat": "Sum", "period": 300, "color": "#d62728" } ]
+          ],
+          "period": 300,
+          "stat": "Sum",
+          "yAxis": {
+            "left": { "min": 0, "showUnits": false }
+          }
+        }
+      },
+      {
+        "type": "metric",
+        "x": 8,
+        "y": 19,
+        "width": 8,
+        "height": 6,
+        "properties": {
+          "title": "EKS Control Plane — Request Latency (ms)",
+          "region": "eu-west-2",
+          "metrics": [
+            [ "AWS/EKS", "request_duration_seconds", { "stat": "p99", "period": 300, "color": "#d62728" } ],
+            [ "...", { "stat": "Average", "period": 300, "color": "#1f77b4" } ]
+          ],
+          "period": 300,
+          "stat": "p99",
+          "yAxis": {
+            "left": { "showUnits": false }
+          }
+        }
+      },
+      {
+        "type": "metric",
+        "x": 16,
+        "y": 19,
+        "width": 8,
+        "height": 6,
+        "properties": {
+          "title": "Spot Instance Interruptions",
+          "region": "eu-west-2",
+          "metrics": [
+            [ "AWS/EC2", "SpotInterruptionCount", { "stat": "Sum", "period": 300, "color": "#ff7f0e" } ]
+          ],
+          "period": 300,
+          "stat": "Sum",
+          "yAxis": {
+            "left": { "min": 0, "showUnits": false }
+          }
+        }
+      },
+      {
+        "type": "text",
+        "x": 0,
+        "y": 25,
+        "width": 24,
+        "height": 1,
+        "properties": {
+          "markdown": "---\n**Alarms:** CPU > 80% | Memory > 85% | Pending Pods > 10 | API 5XX > 5/min"
+        }
+      },
+      {
+        "type": "alarm",
+        "x": 0,
+        "y": 26,
+        "width": 8,
+        "height": 3,
+        "properties": {
+          "title": "High CPU Utilization",
+          "region": "eu-west-2",
+          "alarms": [ "eks-high-cpu-utilization" ]
+        }
+      },
+      {
+        "type": "alarm",
+        "x": 8,
+        "y": 26,
+        "width": 8,
+        "height": 3,
+        "properties": {
+          "title": "Pending Pods Alert",
+          "region": "eu-west-2",
+          "alarms": [ "eks-pending-pods" ]
+        }
+      },
+      {
+        "type": "alarm",
+        "x": 16,
+        "y": 26,
+        "width": 8,
+        "height": 3,
+        "properties": {
+          "title": "API Server Errors",
+          "region": "eu-west-2",
+          "alarms": [ "eks-api-5xx-errors" ]
+        }
+      },
+      {
+        "type": "log",
+        "x": 0,
+        "y": 29,
+        "width": 24,
+        "height": 6,
+        "properties": {
+          "title": "EKS Audit Logs — Recent Events",
+          "region": "eu-west-2",
+          "query": "SOURCE '/aws/eks/secondwave-prod-euw2/cluster' | fields @timestamp, @message\n| filter @message like /(?i)(error|fail|deny|unauthorized)/\n| sort @timestamp desc\n| limit 50",
+          "view": "table"
+        }
+      }
+    ]
+  }
+}

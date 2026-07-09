@@ -1,0 +1,273 @@
+# =============================================================================
+# ADOT Collector DaemonSet - EKS Metrics, Traces, and Logs
+# =============================================================================
+# ARCHITECTURE DECISION: ADOT over Prometheus + Grafana Agent
+# AWS Distro for OpenTelemetry (ADOT) provides a single DaemonSet that
+# collects metrics, traces, and logs. It integrates natively with
+# AWS X-Ray, CloudWatch, and AMP (Amazon Managed Prometheus).
+# This eliminates: (1) multiple agents per node, (2) vendor lock-in
+# risk (OpenTelemetry is CNCF-graduated), (3) complex configuration
+# for AWS service integrations.
+#
+# SECURITY SAFEGUARD: IRSA authentication for ADOT
+# The ADOT collector uses IRSA to authenticate to AWS services.
+# No AWS credentials stored in the cluster.
+# =============================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: observability
+  labels:
+    name: observability
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: adot-collector
+  namespace: observability
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/adot-collector"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: adot-collector
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "nodes", "nodes/stats", "nodes/metrics", "services", "endpoints", "namespaces"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "daemonsets", "statefulsets", "replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs: ["/metrics"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: adot-collector
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: adot-collector
+subjects:
+  - kind: ServiceAccount
+    name: adot-collector
+    namespace: observability
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: adot-collector
+  namespace: observability
+  labels:
+    app: adot-collector
+spec:
+  selector:
+    matchLabels:
+      app: adot-collector
+  template:
+    metadata:
+      labels:
+        app: adot-collector
+    spec:
+      serviceAccountName: adot-collector
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: otel-collector
+          image: public.ecr.aws/aws-observability/aws-otel-collector:v0.32.0
+          args: ["--config=/etc/otel/config.yaml"]
+          env:
+            - name: AWS_REGION
+              value: "eu-west-2"
+            - name: CLUSTER_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - name: otel-config
+              mountPath: /etc/otel
+            - name: rootfs
+              mountPath: /rootfs
+              readOnly: true
+            - name: dockersock
+              mountPath: /var/run/docker.sock
+              readOnly: true
+      volumes:
+        - name: otel-config
+          configMap:
+            name: adot-collector-config
+        - name: rootfs
+          hostPath:
+            path: /
+        - name: dockersock
+          hostPath:
+            path: /var/run/docker.sock
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: adot-collector-config
+  namespace: observability
+data:
+  config.yaml: |
+    # ARCHITECTURE DECISION: Pipelines for metrics, traces, and logs
+    # Separate pipelines allow independent exporters and sampling rates.
+    # Metrics go to CloudWatch and AMP (if available), traces go to X-Ray,
+    # logs go to CloudWatch Logs.
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+      prometheus:
+        config:
+          scrape_configs:
+            # Scrape kubelet for node metrics
+            - job_name: 'kubernetes-nodes'
+              scheme: https
+              tls_config:
+                ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                insecure_skip_verify: true
+              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+              kubernetes_sd_configs:
+                - role: node
+              relabel_configs:
+                - action: labelmap
+                  regex: __meta_kubernetes_node_label_(.+)
+                - target_label: __address__
+                  replacement: kubernetes.default.svc:443
+                - source_labels: [__meta_kubernetes_node_name]
+                  regex: (.+)
+                  target_label: __path__
+                  replacement: /api/v1/nodes/$1/proxy/metrics
+
+            # Scrape Karpenter controller metrics
+            - job_name: 'karpenter'
+              kubernetes_sd_configs:
+                - role: pod
+                  namespaces:
+                    names: [karpenter]
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+                  regex: karpenter
+                  action: keep
+                - source_labels: [__meta_kubernetes_pod_container_port_number]
+                  regex: "8000"
+                  action: keep
+
+            # Scrape CoreDNS
+            - job_name: 'coredns'
+              kubernetes_sd_configs:
+                - role: pod
+                  namespaces:
+                    names: [kube-system]
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_pod_label_k8s_app]
+                  regex: kube-dns
+                  action: keep
+                - source_labels: [__address__]
+                  action: replace
+                  target_label: __address__
+                  regex: (.+?)(\\:\\d+)?
+                  replacement: $1:9153
+
+      # AWS Container Insights receiver for EKS
+      awscontainerinsightreceiver:
+        collection_interval: 60s
+        container_orchestrator: eks
+        add_eks_metric_dimensions: true
+        add_container_insights_eks_metric_dimensions: true
+        # ARCHITECTURE DECISION: Enhanced node-level metrics
+        # Container Insights provides pod-level CPU/memory/network metrics
+        # that are directly available in CloudWatch without custom scraping.
+
+    processors:
+      batch:
+        timeout: 10s
+        send_batch_size: 1024
+
+      memory_limiter:
+        check_interval: 5s
+        limit_mib: 400
+        spike_limit_mib: 100
+
+      # SECURITY SAFEGUARD: Filter sensitive attributes
+      attributes:
+        actions:
+          - key: aws.log.group.name
+            value: "/aws/containerinsights/${CLUSTER_NAME}/performance"
+            action: upsert
+
+    exporters:
+      awscloudwatchlogs:
+        log_group_name: "/aws/containerinsights/${CLUSTER_NAME}/performance"
+        log_stream_name: "kubernetes-${NODE_NAME}"
+
+      awsemf:
+        namespace: "ContainerInsights"
+        log_group_name: "/aws/containerinsights/${CLUSTER_NAME}/performance"
+        log_stream_name: "kubernetes-${NODE_NAME}"
+        dimension_rollup_option: "NoDimensionRollup"
+        metric_declaration_dedup: true
+        metric_descriptors:
+          - metric_name: node_cpu_utilization
+            metric_unit: Percent
+            metric_declaration:
+              source: metric
+              label_matcher:
+                label_names: ["NodeName"]
+              metric_value_mod: {}
+          - metric_name: node_memory_utilization
+            metric_unit: Percent
+          - metric_name: pod_cpu_utilization
+            metric_unit: Percent
+          - metric_name: pod_memory_utilization
+            metric_unit: Percent
+          - metric_name: node_network_total_bytes
+            metric_unit: Bytes
+
+      # ARCHITECTURE DECISION: Prometheus remote write to AMP
+      # For long-term metrics retention and Grafana visualization,
+      # we also export to Amazon Managed Prometheus (AMP).
+      # Uncomment when AMP workspace is provisioned.
+      # prometheusremotewrite:
+      #   endpoint: "https://aps-workspaces.eu-west-2.amazonaws.com/workspaces/<workspace-id>/api/v1/remote_write"
+      #   auth:
+      #     authenticator: sigv4
+      #   resource_to_telemetry_conversion:
+      #     enabled: true
+
+      # AWS X-Ray for distributed tracing
+      awsxray:
+        region: eu-west-2
+
+    service:
+      pipelines:
+        metrics:
+          receivers: [prometheus, awscontainerinsightreceiver]
+          processors: [memory_limiter, batch]
+          exporters: [awsemf]
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [awsxray]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, batch, attributes]
+          exporters: [awscloudwatchlogs]

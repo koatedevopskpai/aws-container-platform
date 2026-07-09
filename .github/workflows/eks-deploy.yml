@@ -1,0 +1,137 @@
+# =============================================================================
+# EKS Deploy Workflow - OIDC-authenticated Terraform deployment
+# =============================================================================
+# ARCHITECTURE DECISION: OIDC auth over static AWS credentials
+# GitHub Actions assumes an IAM role via OIDC. No AWS access keys
+# are stored as GitHub Secrets. This eliminates credential leakage
+# through: (1) secret exfiltration, (2) branch protections bypass,
+# (3) third-party action compromises.
+#
+# SECURITY SAFEGUARD: Environment-based approval gates
+# The prod environment requires manual approval. Dev/staging deploy
+# automatically on main branch pushes. This enforces change management
+# for production infrastructure.
+# =============================================================================
+
+name: EKS Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**.tf'
+      - '**.tfvars'
+      - 'modules/**'
+      - '.github/workflows/eks-deploy.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '**.tf'
+      - '**.tfvars'
+      - 'modules/**'
+
+permissions:
+  id-token: write   # Required for OIDC auth
+  contents: read    # Required to checkout repo
+  pull-requests: write # Required for plan comments
+
+env:
+  TF_VERSION: 1.6.6
+  AWS_REGION: eu-west-2
+
+jobs:
+  terraform-fmt:
+    name: Terraform Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+        working-directory: aws/container-platform
+
+  terraform-plan:
+    name: Terraform Plan
+    needs: terraform-fmt
+    runs-on: ubuntu-latest
+    # ARCHITECTURE DECISION: OIDC role per environment
+    # Each environment has its own IAM role with scoped permissions.
+    # The role ARN is mapped by the GitHub environment.
+    environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: terraform-deploy
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        run: terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" -backend-config="dynamodb_table=${{ secrets.TF_LOCK_TABLE }}"
+        working-directory: aws/container-platform
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: aws/container-platform
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color -var-file=terraform.tfvars -out=tfplan
+        working-directory: aws/container-platform
+
+      - name: Upload Plan
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfplan
+          path: aws/container-platform/tfplan
+
+  terraform-apply:
+    name: Terraform Apply
+    needs: terraform-plan
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: terraform-apply
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Download Plan
+        uses: actions/download-artifact@v3
+        with:
+          name: tfplan
+          path: aws/container-platform
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+        working-directory: aws/container-platform
+
+      # SECURITY SAFEGUARD: Post-deploy validation
+      - name: Validate EKS Cluster
+        run: |
+          aws eks describe-cluster --name $(terraform output -raw cluster_name) --region ${{ env.AWS_REGION }}
+        working-directory: aws/container-platform

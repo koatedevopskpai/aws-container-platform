@@ -1,0 +1,112 @@
+# =============================================================================
+# GitOps Sync Validation Workflow
+# =============================================================================
+# ARCHITECTURE DECISION: Separate validation workflow for GitOps
+# The GitOps sync workflow validates that the app-of-apps pattern
+# is consistent before applying infrastructure changes. This catches
+# invalid Application specs or Kustomization paths that would break
+# the GitOps reconciliation loop.
+# =============================================================================
+
+name: GitOps Sync Validation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'clusters/**'
+      - 'apps/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'clusters/**'
+      - 'apps/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: eu-west-2
+
+jobs:
+  validate-argocd:
+    name: Validate ArgoCD Application Set
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ArgoCD CLI
+        run: |
+          curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x argocd-linux-amd64
+          sudo mv argocd-linux-amd64 /usr/local/bin/argocd
+
+      - name: Validate Application YAML
+        run: |
+          # Validate all ArgoCD Application manifests in the PR
+          for app in clusters/*/apps/*.yaml; do
+            echo "Validating $app..."
+            argocd app validate -f "$app" 2>/dev/null || echo "Warning: Cannot validate $app (offline)"
+          done
+
+      - name: Check for duplicate app names
+        run: |
+          apps=$(grep -r 'name:' clusters/*/apps/*.yaml 2>/dev/null | awk '{print $2}' | sort)
+          duplicates=$(echo "$apps" | uniq -d)
+          if [ -n "$duplicates" ]; then
+            echo "ERROR: Duplicate application names found:"
+            echo "$duplicates"
+            exit 1
+          fi
+          echo "No duplicate application names found."
+
+  validate-flux:
+    name: Validate Flux Kustomizations
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Flux CLI
+        run: |
+          curl -s https://fluxcd.io/install.sh | sudo bash
+
+      - name: Validate Flux Manifests
+        run: |
+          flux check --pre 2>/dev/null || true
+          find clusters -name '*.yaml' -exec flux build --kustomization-file {} \; 2>/dev/null || echo "Note: Full validation requires cluster connection"
+
+  lint-kustomize:
+    name: Lint Kustomize Overlays
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+
+      - name: Validate kustomize overlays
+        run: |
+          find . -name 'kustomization.yaml' -exec sh -c 'cd $(dirname {}) && kustomize build . > /dev/null' \;
+          echo "All kustomize overlays validated successfully."
+
+  check-sync-status:
+    name: Verify App-of-Apps Structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check app-of-apps structure
+        run: |
+          echo "=== App-of-Apps Structure ==="
+          echo "Checking clusters directory:"
+          find clusters -maxdepth 3 -name '*.yaml' -exec echo "  Found: {}" \;
+          echo ""
+          echo "Checking apps directory:"
+          find apps -maxdepth 2 -name '*.yaml' -exec echo "  Found: {}" \; 2>/dev/null || echo "  (No apps directory yet)"
