@@ -1,0 +1,58 @@
+# =============================================================================
+# Infracost Configuration - Cloud Cost Estimation
+# =============================================================================
+# ARCHITECTURE DECISION: Infracost for cost governance
+# Infracost provides upfront cost estimates for every Terraform change.
+# This enables the platform team to review cost impact before deployment.
+# For SecondWave, a 10% monthly EC2 increase without notification is
+# considered a security incident (financial security).
+# =============================================================================
+
+version: 0.1
+
+# ARCHITECTURE DECISION: Tag-based cost allocation
+# Resources tagged with Environment and Squad enable per-squad and
+# per-environment cost breakdowns.
+metadata_policy:
+  required_tags:
+    - Environment
+    - ManagedBy
+    - Platform
+
+# SECURITY SAFEGUARD: Cost anomaly thresholds
+# These thresholds trigger warnings in CI/CD. Any change exceeding
+# these must be reviewed by the platform lead.
+currency: GBP
+
+projects:
+  - path: .
+    name: container-platform
+    usage_file: .infracost-usage.yml
+
+    # ARCHITECTURE DECISION: Exclude test and example directories
+    # from cost estimation to avoid skewing baseline costs.
+    exclude_patterns:
+      - tests/**
+      - modules/**/examples/**
+
+# Cost thresholds
+policies:
+  # Cost increase percentage that triggers a warning
+  percentage_threshold: 20
+
+  # Absolute cost increase that triggers a warning (monthly)
+  cost_threshold: 100
+
+# Output formats
+output:
+  - format: table
+    fields:
+      - name
+      - monthlyQuantity
+      - unit
+      - monthlyCost
+      - diffMonthlyCost
+      - diffPercentage
+
+  - format: json
+    path: infracost-report.json

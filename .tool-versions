@@ -1,0 +1,51 @@
+# =============================================================================
+# asdf Tool Versions - Version Pinning for Local Development
+# =============================================================================
+# ARCHITECTURE DECISION: asdf over individual version managers
+# asdf provides a single .tool-versions file for all language/runtime
+# versions. This eliminates the need for nvm, rvm, pyenv, tfenv, etc.
+# and ensures all engineers use identical tool versions.
+#
+# Run: asdf install
+# =============================================================================
+
+terraform 1.6.6
+# ARCHITECTURE DECISION: Terraform 1.6.x for test-driven development
+# Terraform 1.6 introduced test command (terraform test) which we
+# use alongside Terratest for comprehensive validation.
+
+python 3.11.6
+# Required for pre-commit hooks and Checkov
+
+golang 1.21.5
+# Required for Terratest compilation
+
+tflint 0.50.3
+# Terraform linter
+
+checkov 3.2.26
+# IaC security scanner
+
+pre-commit 3.6.0
+# Git hook framework
+
+infracost 0.10.34
+# Cloud cost estimation
+
+trivy 0.49.1
+# Vulnerability scanner (used by pre-commit)
+
+kubectl 1.28.4
+# Kubernetes CLI for cluster management
+
+helm 3.13.3
+# Kubernetes package manager
+
+argocd 2.9.6
+# ArgoCD CLI for GitOps management
+
+flux 2.2.3
+# Flux CLI for GitOps operations
+
+kustomize 5.3.0
+# Kubernetes manifest customization

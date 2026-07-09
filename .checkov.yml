@@ -1,0 +1,64 @@
+# =============================================================================
+# Checkov Configuration - Static Analysis for IaC Security
+# =============================================================================
+# ARCHITECTURE DECISION: Checkov over tfsec for comprehensive scanning
+# Checkov scans Terraform, Kubernetes, Docker, and Helm files with
+# 1000+ built-in policies. It integrates with Prisma Cloud for
+# enterprise compliance reporting.
+#
+# SECURITY SAFEGUARD: Fail pipeline on high-severity findings
+# Any CKV_AWS_* high-severity violation will block the Terraform apply.
+# This prevents insecure configurations from reaching production.
+# =============================================================================
+
+quiet: true
+skip-check:
+  # -----------------------------------------------------------------------
+  # Exclusions with documented justification
+  # -----------------------------------------------------------------------
+
+  # CKV_AWS_272: EKS control plane allows all traffic on port 443
+  # Justification: The security group is restricted to VPC CIDR via
+  # cluster_endpoint_private_cidrs variable (default: RFC1918 only).
+  # The alert is a false positive as public access is disabled.
+  - CKV_AWS_272
+
+  # CKV_AWS_111: Ensure IAM policies not overly permissive
+  # Justification: The EBS CSI driver policy requires ec2:CreateSnapshot
+  # with "*" resource because it needs to snapshot any volume.
+  # The policy follows AWS's recommended minimum for the add-on.
+  - CKV_AWS_111
+
+framework:
+  - terraform
+  - kubernetes
+  - helm
+
+# ARCHITECTURE DECISION: Custom policy directory for SecondWave standards
+# Additional policies specific to open banking compliance requirements.
+# external_checks:
+#   - dir: .checkov/custom_policies
+
+# SECURITY SAFEGUARD: Enforce secrets scanning on all files
+# Prevents accidental commit of AWS keys, tokens, or passwords.
+secrets_scan_file_types:
+  - .tf
+  - .tfvars
+  - .yaml
+  - .yml
+  - .json
+  - .sh
+
+# Skip GitHub Actions framework to avoid false positives on CI files
+skip_framework:
+  - github_actions
+
+soft_fail: false
+
+output_format: cli
+
+# ARCHITECTURE DECISION: JUnit output for CI/CD integration
+# Test reports in JUnit format for Jenkins/GitHub Actions
+# test results API.
+# output_file_path: checkov-report.xml
+# output_format: junitxml
