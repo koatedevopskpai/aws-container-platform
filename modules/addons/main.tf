@@ -60,11 +60,11 @@ provider "helm" {
 resource "helm_release" "aws_load_balancer_controller" {
   provider = helm.addons
 
-  name             = "aws-load-balancer-controller"
-  namespace        = "kube-system"
-  repository       = "https://aws.github.io/eks-charts"
-  chart            = "aws-load-balancer-controller"
-  version          = "1.6.1"
+  name       = "aws-load-balancer-controller"
+  namespace  = "kube-system"
+  repository = "https://aws.github.io/eks-charts"
+  chart      = "aws-load-balancer-controller"
+  version    = "1.6.1"
 
   set {
     name  = "clusterName"
@@ -382,8 +382,8 @@ resource "aws_wafv2_web_acl" "alb" {
     }
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name               = "AWSManagedRulesCommonRuleSet"
-      sampled_requests_enabled  = true
+      metric_name                = "AWSManagedRulesCommonRuleSet"
+      sampled_requests_enabled   = true
     }
   }
 
@@ -401,8 +401,8 @@ resource "aws_wafv2_web_acl" "alb" {
     }
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name               = "AWSManagedRulesSQLiRuleSet"
-      sampled_requests_enabled  = true
+      metric_name                = "AWSManagedRulesSQLiRuleSet"
+      sampled_requests_enabled   = true
     }
   }
 
@@ -421,15 +421,15 @@ resource "aws_wafv2_web_acl" "alb" {
     }
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name               = "RateLimit"
-      sampled_requests_enabled  = true
+      metric_name                = "RateLimit"
+      sampled_requests_enabled   = true
     }
   }
 
   visibility_config {
     cloudwatch_metrics_enabled = true
-    metric_name               = "${var.cluster_name}-waf"
-    sampled_requests_enabled  = true
+    metric_name                = "${var.cluster_name}-waf"
+    sampled_requests_enabled   = true
   }
 
   tags = var.tags
@@ -449,7 +449,7 @@ resource "aws_wafv2_web_acl" "alb" {
 data "aws_region" "current" {}
 
 provider "kubectl" {
-  alias = "addons"
+  alias                  = "addons"
   host                   = var.cluster_endpoint
   cluster_ca_certificate = base64decode(var.cluster_ca_certificate)
   load_config_file       = false

@@ -26,18 +26,17 @@ locals {
 # EKS Cluster Module
 # ---------------------------------------------------------------------------
 module "eks_cluster" {
-  source      = "./modules/eks-cluster"
-  version     = null # local module
+  source = "./modules/eks-cluster"
 
-  cluster_name              = var.cluster_name
-  region                    = var.region
-  vpc_id                    = var.vpc_id
-  private_subnet_ids        = var.private_subnet_ids
+  cluster_name                   = var.cluster_name
+  region                         = var.region
+  vpc_id                         = var.vpc_id
+  private_subnet_ids             = var.private_subnet_ids
   cluster_endpoint_private_cidrs = var.cluster_endpoint_private_cidrs
-  cluster_log_types         = var.cluster_log_types
-  enable_cluster_encryption = var.enable_cluster_encryption
-  node_groups               = var.node_groups
-  tags                      = local.common_tags
+  cluster_log_types              = var.cluster_log_types
+  enable_cluster_encryption      = var.enable_cluster_encryption
+  node_groups                    = var.node_groups
+  tags                           = local.common_tags
 }
 
 # ---------------------------------------------------------------------------
@@ -48,8 +47,7 @@ module "eks_cluster" {
 # for credential caching and role chaining.
 # ---------------------------------------------------------------------------
 module "irsa" {
-  source  = "./modules/irsa"
-  version = null
+  source = "./modules/irsa"
 
   cluster_oidc_provider_url = module.eks_cluster.oidc_provider_url
   cluster_oidc_provider_arn = module.eks_cluster.oidc_provider_arn
@@ -73,24 +71,23 @@ module "irsa" {
 # health checks are replaced individually.
 # ---------------------------------------------------------------------------
 module "karpenter" {
-  source  = "./modules/karpenter"
-  version = null
+  source = "./modules/karpenter"
 
   count = var.karpenter_config.enabled ? 1 : 0
 
-  cluster_name              = var.cluster_name
-  cluster_endpoint          = module.eks_cluster.cluster_endpoint
-  cluster_ca_certificate    = module.eks_cluster.cluster_ca_certificate
-  oidc_provider_arn         = module.eks_cluster.oidc_provider_arn
-  oidc_provider_url         = module.eks_cluster.oidc_provider_url
-  vpc_id                    = var.vpc_id
-  private_subnet_ids        = var.private_subnet_ids
-  instance_family           = var.karpenter_config.instance_family
-  instance_size             = var.karpenter_config.instance_size
-  cpu_limit                 = var.karpenter_config.cpu_limit
-  memory_limit              = var.karpenter_config.memory_limit
-  ttl_seconds_after_empty   = var.karpenter_config.ttl_seconds_after_empty
-  tags                      = local.common_tags
+  cluster_name            = var.cluster_name
+  cluster_endpoint        = module.eks_cluster.cluster_endpoint
+  cluster_ca_certificate  = module.eks_cluster.cluster_ca_certificate
+  oidc_provider_arn       = module.eks_cluster.oidc_provider_arn
+  oidc_provider_url       = module.eks_cluster.oidc_provider_url
+  vpc_id                  = var.vpc_id
+  private_subnet_ids      = var.private_subnet_ids
+  instance_family         = var.karpenter_config.instance_family
+  instance_size           = var.karpenter_config.instance_size
+  cpu_limit               = var.karpenter_config.cpu_limit
+  memory_limit            = var.karpenter_config.memory_limit
+  ttl_seconds_after_empty = var.karpenter_config.ttl_seconds_after_empty
+  tags                    = local.common_tags
 }
 
 # ---------------------------------------------------------------------------
@@ -101,17 +98,16 @@ module "karpenter" {
 # deployments without cluster-admin access.
 # ---------------------------------------------------------------------------
 module "gitops_bootstrap" {
-  source  = "./modules/gitops-bootstrap"
-  version = null
+  source = "./modules/gitops-bootstrap"
 
-  cluster_name       = var.cluster_name
-  cluster_endpoint   = module.eks_cluster.cluster_endpoint
-  cluster_ca_certificate = module.eks_cluster.cluster_ca_certificate
-  gitops_tool        = var.gitops_tool
-  domain_name        = var.domain_name
-  cert_email         = var.cert_email
+  cluster_name                 = var.cluster_name
+  cluster_endpoint             = module.eks_cluster.cluster_endpoint
+  cluster_ca_certificate       = module.eks_cluster.cluster_ca_certificate
+  gitops_tool                  = var.gitops_tool
+  domain_name                  = var.domain_name
+  cert_email                   = var.cert_email
   argocd_admin_password_secret = module.eks_cluster.argocd_admin_password_secret_arn
-  tags               = local.common_tags
+  tags                         = local.common_tags
 
   depends_on = [module.eks_cluster]
 }
@@ -124,19 +120,18 @@ module "gitops_bootstrap" {
 # chains ensures correct provisioning order.
 # ---------------------------------------------------------------------------
 module "addons" {
-  source  = "./modules/addons"
-  version = null
+  source = "./modules/addons"
 
-  cluster_name            = var.cluster_name
-  cluster_endpoint        = module.eks_cluster.cluster_endpoint
-  cluster_ca_certificate  = module.eks_cluster.cluster_ca_certificate
-  oidc_provider_arn       = module.eks_cluster.oidc_provider_arn
-  vpc_id                  = var.vpc_id
-  domain_name             = var.domain_name
-  cert_email              = var.cert_email
-  irsa_roles              = module.irsa.role_arns
-  enable_waf              = var.enable_waf
-  tags                    = local.common_tags
+  cluster_name           = var.cluster_name
+  cluster_endpoint       = module.eks_cluster.cluster_endpoint
+  cluster_ca_certificate = module.eks_cluster.cluster_ca_certificate
+  oidc_provider_arn      = module.eks_cluster.oidc_provider_arn
+  vpc_id                 = var.vpc_id
+  domain_name            = var.domain_name
+  cert_email             = var.cert_email
+  irsa_roles             = module.irsa.role_arns
+  enable_waf             = var.enable_waf
+  tags                   = local.common_tags
 
   depends_on = [
     module.eks_cluster,
@@ -212,7 +207,7 @@ resource "aws_ecr_repository_policy" "app_repositories" {
 resource "aws_inspector2_enabler" "ecr_scanning" {
   count = var.enable_image_scanning ? 1 : 0
 
-  account_ids = [data.aws_caller_identity.current.account_id]
+  account_ids    = [data.aws_caller_identity.current.account_id]
   resource_types = ["ECR"]
 }
 

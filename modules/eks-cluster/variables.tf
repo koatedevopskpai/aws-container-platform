@@ -37,14 +37,14 @@ variable "enable_cluster_encryption" {
 variable "node_groups" {
   description = "Managed node group configurations."
   type = map(object({
-    instance_types   = list(string)
-    desired_size     = number
-    min_size         = number
-    max_size         = number
-    disk_size        = number
-    capacity_type    = string
-    k8s_labels       = map(string)
-    k8s_taints       = optional(list(map(string)))
+    instance_types = list(string)
+    desired_size   = number
+    min_size       = number
+    max_size       = number
+    disk_size      = number
+    capacity_type  = string
+    k8s_labels     = map(string)
+    k8s_taints     = optional(list(map(string)))
   }))
 }
 

@@ -102,15 +102,15 @@ resource "aws_iam_policy" "karpenter_controller" {
         Resource = "*"
       },
       {
-        Sid    = "PassRole"
-        Effect = "Allow"
-        Action = "iam:PassRole"
+        Sid      = "PassRole"
+        Effect   = "Allow"
+        Action   = "iam:PassRole"
         Resource = [aws_iam_role.karpenter_node.arn]
       },
       {
-        Sid    = "Pricing"
-        Effect = "Allow"
-        Action = "pricing:GetProducts"
+        Sid      = "Pricing"
+        Effect   = "Allow"
+        Action   = "pricing:GetProducts"
         Resource = "*"
       }
     ]
@@ -179,12 +179,12 @@ resource "aws_iam_instance_profile" "karpenter_node" {
 # managed lifecycle and drift detection.
 # ---------------------------------------------------------------------------
 resource "helm_release" "karpenter" {
-  namespace       = "karpenter"
+  namespace        = "karpenter"
   create_namespace = true
-  name            = "karpenter"
-  repository      = "oci://public.ecr.aws/karpenter"
-  chart           = "karpenter"
-  version         = "v0.35.0"
+  name             = "karpenter"
+  repository       = "oci://public.ecr.aws/karpenter"
+  chart            = "karpenter"
+  version          = "v0.35.0"
 
   set {
     name  = "settings.aws.clusterName"
@@ -228,7 +228,9 @@ resource "kubectl_manifest" "karpenter_nodepool" {
               values: ["on-demand", "spot"]
             - key: "node.kubernetes.io/instance-type"
               operator: In
-              values: ${jsonencode([for f in var.instance_family : for s in var.instance_size : "${f}.${s}"])}
+              # Nested comprehension needs the inner `for` in its own brackets:
+              # `[for f in X : for s in Y : expr]` is not valid HCL.
+              values: ${jsonencode([for f in var.instance_family : [for s in var.instance_size : "${f}.${s}"]])}
           nodeClassRef:
             group: karpenter.k8s.aws
             kind: EC2NodeClass

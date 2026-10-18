@@ -47,7 +47,7 @@ provider "helm" {
 }
 
 provider "kubectl" {
-  alias = "gitops"
+  alias                  = "gitops"
   host                   = var.cluster_endpoint
   cluster_ca_certificate = base64decode(var.cluster_ca_certificate)
   load_config_file       = false
@@ -77,11 +77,11 @@ provider "kubectl" {
 # ---------------------------------------------------------------------------
 locals {
   argocd_values = {
-    name      = "argocd"
-    namespace = "argocd"
-    chart     = "argo-cd"
+    name       = "argocd"
+    namespace  = "argocd"
+    chart      = "argo-cd"
     repository = "https://argoproj.github.io/argo-helm"
-    version   = "5.51.0"
+    version    = "5.51.0"
 
     values = [
       <<-VALUES
@@ -122,11 +122,11 @@ locals {
   }
 
   flux_values = {
-    name      = "flux"
-    namespace = "flux-system"
-    chart     = "flux2"
+    name       = "flux"
+    namespace  = "flux-system"
+    chart      = "flux2"
     repository = "https://fluxcd-community.github.io/helm-charts"
-    version   = "2.12.0"
+    version    = "2.12.0"
 
     values = [
       <<-VALUES
@@ -185,10 +185,12 @@ resource "helm_release" "gitops" {
 # via Git sources. This lets the platform team control the initial
 # cluster bootstrap while squads own their applications.
 # ---------------------------------------------------------------------------
-resource "kubectl_manifest" "app_of_apps" {
-  provider = kubectl.gitops
-
-  yaml_body = var.gitops_tool == "argocd" ? <<-YAML
+locals {
+  # A heredoc cannot sit directly on either side of `?:` in HCL: the parser
+  # swallows the false branch as part of the first heredoc's body and fails with
+  # "Missing false expression in conditional". Both manifests live here and the
+  # conditional below simply selects between them.
+  app_of_apps_argocd = <<-YAML
     apiVersion: argoproj.io/v1alpha1
     kind: Application
     metadata:
@@ -209,7 +211,9 @@ resource "kubectl_manifest" "app_of_apps" {
           selfHeal: true
         syncOptions:
           - CreateNamespace=true
-  YAML : <<-YAML
+  YAML
+
+  app_of_apps_flux = <<-YAML
     apiVersion: kustomize.toolkit.fluxcd.io/v1
     kind: Kustomization
     metadata:
@@ -224,6 +228,12 @@ resource "kubectl_manifest" "app_of_apps" {
       prune: true
       validation: client
   YAML
+}
+
+resource "kubectl_manifest" "app_of_apps" {
+  provider = kubectl.gitops
+
+  yaml_body = var.gitops_tool == "argocd" ? local.app_of_apps_argocd : local.app_of_apps_flux
 
   depends_on = [helm_release.gitops]
 }

@@ -48,44 +48,44 @@ variable "private_subnet_ids" {
 variable "node_groups" {
   description = "Managed node group configuration per environment tier."
   type = map(object({
-    instance_types   = list(string)
-    desired_size     = number
-    min_size         = number
-    max_size         = number
-    disk_size        = number
-    capacity_type    = string # SPOT or ON_DEMAND
-    k8s_labels       = map(string)
-    k8s_taints       = optional(list(map(string)))
+    instance_types = list(string)
+    desired_size   = number
+    min_size       = number
+    max_size       = number
+    disk_size      = number
+    capacity_type  = string # SPOT or ON_DEMAND
+    k8s_labels     = map(string)
+    k8s_taints     = optional(list(map(string)))
   }))
   default = {
     dev = {
-      instance_types   = ["t3.medium", "t3a.medium"]
-      desired_size     = 2
-      min_size         = 1
-      max_size         = 5
-      disk_size        = 50
-      capacity_type    = "SPOT"
-      k8s_labels       = { "node-lifecycle" = "spot", "environment" = "dev" }
-      k8s_taints       = null
+      instance_types = ["t3.medium", "t3a.medium"]
+      desired_size   = 2
+      min_size       = 1
+      max_size       = 5
+      disk_size      = 50
+      capacity_type  = "SPOT"
+      k8s_labels     = { "node-lifecycle" = "spot", "environment" = "dev" }
+      k8s_taints     = null
     }
     staging = {
-      instance_types   = ["m5.large", "m5a.large"]
-      desired_size     = 2
-      min_size         = 1
-      max_size         = 8
-      disk_size        = 100
-      capacity_type    = "SPOT"
-      k8s_labels       = { "node-lifecycle" = "spot", "environment" = "staging" }
-      k8s_taints       = null
+      instance_types = ["m5.large", "m5a.large"]
+      desired_size   = 2
+      min_size       = 1
+      max_size       = 8
+      disk_size      = 100
+      capacity_type  = "SPOT"
+      k8s_labels     = { "node-lifecycle" = "spot", "environment" = "staging" }
+      k8s_taints     = null
     }
     prod = {
-      instance_types   = ["m5.xlarge", "m5a.xlarge"]
-      desired_size     = 3
-      min_size         = 3
-      max_size         = 15
-      disk_size        = 200
-      capacity_type    = "ON_DEMAND"
-      k8s_labels       = { "node-lifecycle" = "on-demand", "environment" = "prod" }
+      instance_types = ["m5.xlarge", "m5a.xlarge"]
+      desired_size   = 3
+      min_size       = 3
+      max_size       = 15
+      disk_size      = 200
+      capacity_type  = "ON_DEMAND"
+      k8s_labels     = { "node-lifecycle" = "on-demand", "environment" = "prod" }
       k8s_taints = [
         {
           key    = "CriticalAddonsOnly"
@@ -103,24 +103,24 @@ variable "node_groups" {
 variable "karpenter_config" {
   description = "Karpenter provisioner configuration for group-less auto-scaling in prod."
   type = object({
-    enabled               = bool
-    subnet_selector_terms = list(map(string))
+    enabled                       = bool
+    subnet_selector_terms         = list(map(string))
     security_group_selector_terms = list(map(string))
-    instance_family       = list(string)
-    instance_size         = list(string)
-    cpu_limit             = string
-    memory_limit          = string
-    ttl_seconds_after_empty = optional(number, 30)
+    instance_family               = list(string)
+    instance_size                 = list(string)
+    cpu_limit                     = string
+    memory_limit                  = string
+    ttl_seconds_after_empty       = optional(number, 30)
   })
   default = {
-    enabled               = true
-    subnet_selector_terms = [{ "karpenter.sh/discovery" = "secondwave" }]
+    enabled                       = true
+    subnet_selector_terms         = [{ "karpenter.sh/discovery" = "secondwave" }]
     security_group_selector_terms = [{ "karpenter.sh/discovery" = "secondwave" }]
-    instance_family       = ["m5", "m5a", "m6i", "c5", "c5a", "r5", "r5a"]
-    instance_size         = ["large", "xlarge", "2xlarge"]
-    cpu_limit             = "1000"
-    memory_limit          = "1000Gi"
-    ttl_seconds_after_empty = 30
+    instance_family               = ["m5", "m5a", "m6i", "c5", "c5a", "r5", "r5a"]
+    instance_size                 = ["large", "xlarge", "2xlarge"]
+    cpu_limit                     = "1000"
+    memory_limit                  = "1000Gi"
+    ttl_seconds_after_empty       = 30
   }
 }
 
