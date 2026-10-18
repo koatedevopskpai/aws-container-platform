@@ -1,6 +1,6 @@
 # SecondWave Container Platform — EKS + Karpenter + GitOps
 
-**Enterprise-grade AWS EKS container platform for open banking workloads.**
+**Reference AWS EKS container platform for open banking workloads.**
 
 ## Scenario: SecondWave Financial
 

@@ -1,6 +1,6 @@
 # =============================================================================
 # SecondWave Container Platform - EKS Root Module
-# Provisioning an enterprise-grade, private EKS cluster with Karpenter,
+# Provisioning a private EKS cluster with Karpenter,
 # GitOps bootstrapping, and comprehensive security controls.
 #
 # ARCHITECTURE DECISION: Single root module per environment
