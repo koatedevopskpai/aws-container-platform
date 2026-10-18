@@ -42,50 +42,50 @@ locals {
     aws-load-balancer-controller = {
       namespace       = "kube-system"
       service_account = "aws-load-balancer-controller"
-      policies = ["arn:aws:iam::aws:policy/AWSLoadBalancerControllerAdditional"]
-      description    = "IRSA role for AWS Load Balancer Controller"
+      policies        = ["arn:aws:iam::aws:policy/AWSLoadBalancerControllerAdditional"]
+      description     = "IRSA role for AWS Load Balancer Controller"
     }
     # EBS CSI Driver
     ebs-csi-controller = {
       namespace       = "kube-system"
       service_account = "ebs-csi-controller-sa"
-      policies = ["arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"]
-      description    = "IRSA role for EBS CSI Driver"
+      policies        = ["arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"]
+      description     = "IRSA role for EBS CSI Driver"
     }
     # EFS CSI Driver
     efs-csi-controller = {
       namespace       = "kube-system"
       service_account = "efs-csi-controller-sa"
-      policies = ["arn:aws:iam::aws:policy/service-role/AmazonEFSCSIDriverPolicy"]
-      description    = "IRSA role for EFS CSI Driver"
+      policies        = ["arn:aws:iam::aws:policy/service-role/AmazonEFSCSIDriverPolicy"]
+      description     = "IRSA role for EFS CSI Driver"
     }
     # cert-manager
     cert-manager = {
       namespace       = "cert-manager"
       service_account = "cert-manager"
       policies        = [] # cert-manager uses Route53 via external-dns or DNS01
-      description    = "IRSA role for cert-manager (DNS01 challenges)"
+      description     = "IRSA role for cert-manager (DNS01 challenges)"
     }
     # external-dns
     external-dns = {
       namespace       = "external-dns"
       service_account = "external-dns"
-      policies = ["arn:aws:iam::aws:policy/AmazonRoute53FullAccess"]
-      description    = "IRSA role for external-dns Route53 management"
+      policies        = ["arn:aws:iam::aws:policy/AmazonRoute53FullAccess"]
+      description     = "IRSA role for external-dns Route53 management"
     }
     # External Secrets Operator
     external-secrets = {
       namespace       = "external-secrets"
       service_account = "external-secrets"
-      policies = ["arn:aws:iam::aws:policy/SecretsManagerReadWrite"]
-      description    = "IRSA role for External Secrets Operator"
+      policies        = ["arn:aws:iam::aws:policy/SecretsManagerReadWrite"]
+      description     = "IRSA role for External Secrets Operator"
     }
     # Kyverno
     kyverno = {
       namespace       = "kyverno"
       service_account = "kyverno"
       policies        = [] # Kyverno doesn't need AWS API access
-      description    = "IRSA role for Kyverno admission controller"
+      description     = "IRSA role for Kyverno admission controller"
     }
   }
 }
@@ -96,8 +96,8 @@ locals {
 resource "aws_iam_role" "irsa" {
   for_each = local.service_accounts
 
-  name        = "${var.cluster_name}-${each.key}"
-  description = each.value.description
+  name                 = "${var.cluster_name}-${each.key}"
+  description          = each.value.description
   max_session_duration = 3600
 
   # SECURITY SAFEGUARD: OIDC trust restricted to the specific service account
